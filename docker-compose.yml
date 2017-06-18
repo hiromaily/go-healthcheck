@@ -1,0 +1,44 @@
+version: "3.0"
+
+services:
+  echo:
+    build:
+      context: ./echo_server/
+      dockerfile: Dockerfile
+    image: 'go-healthcheck-echo:1.0'
+    ports:
+      - "9191:80"
+    command: echo -p 80
+
+  dummy:
+    build:
+      context: ./dummy_server/
+      dockerfile: Dockerfile
+    image: 'go-healthcheck-dummy:1.0'
+    ports:
+      - "9192:80"
+    command: dummy -p 80 -t 20
+
+  health:
+    build:
+      context: ./health/
+      dockerfile: Dockerfile
+    image: 'go-healthcheck-health:1.0'
+    links:
+      - echo:echo-server
+      - dummy:dummy-server
+    depends_on:
+      - echo
+      - dummy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    stdin_open: true
+    tty: true
+    privileged: true
+    restart: always
+    healthcheck:
+      test: ["CMD", "bash", "-c", "/workspace/health/check.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 1
+    command: bash
